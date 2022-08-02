@@ -1,0 +1,5 @@
+.project
+.pydevproject
+Deploy.sh
+__pycache__/
+example.*

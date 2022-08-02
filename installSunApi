@@ -1,0 +1,27 @@
+#! /bin/bash
+
+BASE=/opt/sunmonitor
+ETC_BASE=/etc/sunmonitor
+
+function InitService(){
+  cd $BASE
+  useradd sun
+  python3 SunApi.py init-service
+  python3 SunApi.py example
+  systemctl enable sunmonitor
+  systemctl stop sunmonitor
+  ln -vs $BASE/SunApi.py /usr/local/bin/sunapi
+}
+
+function ToDo(){
+  egrep "client.ip" $ETC_BASE/api.conf
+  echo "+++ Please adapt the ip in $ETC_BASE/api.conf"
+  echo "+++ Than restart the proxy server: systemctl restart sunapi"
+  echo "+++ Test it with: sunapi status 
+}
+if [ $(id -u) != 0 ]; then
+  echo "Be root!"
+else
+  InitService
+  ToDo
+fi

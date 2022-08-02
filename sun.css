@@ -1,0 +1,6 @@
+.sun-content {
+  margin-top: 2em;
+}
+.sun-table tr, .db-table th, .db-table td{
+  border: grey solid 1px;
+}

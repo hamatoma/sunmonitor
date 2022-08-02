@@ -1,0 +1,151 @@
+HTML_DOCUMENT:
+<!DOCTYPE html>
+<html lang="en" data-url="greenlab.infeos"><head>
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta charset="UTF-8">
+  <title>i18n(page.title)</title>
+</head>
+<body>
+<style>
+.sun-content {
+  margin-top: 1em;
+}
+.sun-table tr, .sun-table th, .sun-table td{
+  border: grey solid 1px;
+}
+table {
+  border-collapse: collapse;
+  margin-top: 1em;
+}
+td, th {
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  text-align: right;
+}
+.svg-left {
+  text-align: left;
+}
+.sun-strong {
+  color: blue;
+}
+.sun-date-input {
+  max-width: 12ex;
+}
+</style>
+~BODY~
+</body>
+</html>
+
+HTML_FORM:
+<form id="~id~-form" action="~action~" method="~method~" enctype="multipart/form-data">
+<h2>~title~</h2>
+~FORM_BODY~
+</form>
+
+HTML_ROW:
+<div class="row">
+~ROW~
+</row>
+
+HTML_DAY_FORM_BODY:
+  <label for="date">i18n(date): </label> 
+  <input class="sun-date-input" name="date" value="~date~" />
+  <label for="from">i18n(from): </label> 
+  <select name="from">
+  <option value="4"~from4~>4</option>
+  <option value="6"~from6~>6</option>
+  <option value="8"~from8~>8</option>
+  <option value="10"~from10~>10</option>
+  <option value="12"~from12~>12</option>
+  <option value="14"~from14~>16</option>
+  <option value="16"~from16~>18</option>
+  </select>
+  <label for="until">i18n(until): </label> 
+  <select name="until">
+  <option value="8"~until8~>8</option>
+  <option value="10"~until10~>10</option>
+  <option value="12"~until12~>12</option>
+  <option value="14"~until14~>14</option>
+  <option value="16"~until16~>16</option>
+  <option value="18"~until18~>18</option>
+  <option value="20"~until20~>20</option>
+  <option value="22"~until22~>22</option>
+  </select>
+  <button type="submit" name="daydiagram">i18n(show)</button>
+  <select name="mode">
+  <option value="1"~mode1~>i18n(simple)</option>
+  <option value="2"~mode2~>i18n(all)</option>
+  </select>
+  <a href="/year">i18n(statistics.of.year)</a>
+<p>i18n(today): <a href="/day?date=~now~">~now~</a>
+  i18n(yesterday): <a href="/day?date=~yesterday~">~yesterday~</a>
+</p>
+<div class="sun-content">
+~BODY~
+</div>
+
+HTML_NOT_AVAILABLE:
+<p>i18n(data.not.available).</p>
+
+HTML_BEST_LIST:
+<h3>i18n(best.list)</h3>
+<table class="sun-table">
+  <thead>
+    <tr><th>i18n(date):</th><th>i18n(energy) (Wh):</th><th>i18n(date):</th><th>i18n(energy) (Wh):</th></tr>
+  </thead>
+  <tbody>
+~ROWS~
+  </tbody>
+</table>
+
+HTML_BEST_LIST_ROW:
+<tr><td><a href="/day?date=~dateGood~">~dateGood~</a></td><td>~valGood~</td><td><a href="/day?date=~dateBad~">~dateBad~</a></td><td>~valBad~</td></tr>
+
+HTML_NOT_AVAILABLE2:
+<p>i18n(data.not.available2).</p>
+
+HTML_YEAR_FORM_BODY:
+  <label for="start">i18n(from): </label> 
+  <input class="sun-date-input" name="start" value="~start~" />
+  <label for="end">i18n(until): </label> 
+  <input class="sun-date-input" name="end" value="~end~" />
+  <button type="submit" name="yeardiagram">i18n(show)</button>
+  <a href="/day">i18n(statistics.of.day)</a>
+<div class="sun-content">
+~BODY~
+</div>
+
+HTML_TABLE_YEAR:
+<table class="sun-table">
+  <thead>
+    <tr><th></th><th>i18n(sum):</th><th>i18n(per.day):</th></tr>
+  </thead>
+  <tbody>
+  <tr><td><strong>i18n(days)</strong></td><td>~count~</td></tr>
+  <tr><td><strong>i18n(energy)</strong></td><td>~energy~ kWh</td><td>~eavg~ kWh</td></tr>
+  <tr><td></td><td></td><td></td></tr>
+  <tr><td><strong>00:00-08:00</strong></td><td>~time8~ kWh</td><td>~tavg8~ kWh</td></tr>
+  <tr><td><strong>08:00-09:00</strong></td><td>~time9~ kWh</td><td>~tavg9~ kWh</td></tr>
+  <tr><td><strong>09:00-10:00</strong></td><td>~time10~ kWh</td><td>~tavg10~ kWh</td></tr>
+  <tr><td><strong>10:00-11:00</strong></td><td>~time11~ kWh</td><td>~tavg11~ kWh</td></tr>
+  <tr><td><strong>11:00-12:00</strong></td><td>~time12~ kWh</td><td>~tavg12~ kWh</td></tr>
+  <tr><td><strong>12:00-13:00</strong></td><td>~time13~ kWh</td><td>~tavg13~ kWh</td></tr>
+  <tr><td><strong>13:00-14:00</strong></td><td>~time14~ kWh</td><td>~tavg14~ kWh</td></tr>
+  <tr><td><strong>14:00-15:00</strong></td><td>~time15~ kWh</td><td>~tavg15~ kWh</td></tr>
+  <tr><td><strong>15:00-16:00</strong></td><td>~time16~ kWh</td><td>~tavg16~ kWh</td></tr>
+  <tr><td><strong>16:00-17:00</strong></td><td>~time17~ kWh</td><td>~tavg17~ kWh</td></tr>
+  <tr><td><strong>17:00-18:00</strong></td><td>~time18~ kWh</td><td>~tavg18~ kWh</td></tr>
+  <tr><td><strong>18:00-24:00</strong></td><td>~time19~ kWh</td><td>~tavg19~ kWh</td></tr>
+  <tr><td></td><td></td><td></td></tr>
+  <tr><td><strong>&gt;&nbsp;&nbsp;10 W</strong></td><td>~min10~ i18n(h)</td><td>~mavg10~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;&nbsp;25 W</strong></td><td>~min25~ i18n(h)</td><td>~mavg25~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;&nbsp;50 W</strong></td><td>~min50~ i18n(h)</td><td>~mavg50~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;100 W</strong></td><td>~min100~ i18n(h)</td><td>~mavg100~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;200 W</strong></td><td>~min200~ i18n(h)</td><td>~mavg200~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;300 W</strong></td><td>~min300~ i18n(h)</td><td>~mavg300~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;400 W</strong></td><td>~min400~ i18n(h)</td><td>~mavg400~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;500 W</strong></td><td>~min500~ i18n(h)</td><td>~mavg500~ i18n(h)</td></tr>
+  <tr><td><strong>&gt;&nbsp;590 W</strong></td><td>~min590~ i18n(h)</td><td>~mavg590~ i18n(h)</td></tr>
+  </tbody>
+</table>
+
