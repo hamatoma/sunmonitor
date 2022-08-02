@@ -6,7 +6,20 @@ DB=appsunmonitor
 DB_USER=sun
 DB_PW=sun4sun
 
+function InitDatabase(){
+  local found=$(echo "show databases;" | mysql -u root mysql | grep $DB)
+  if [ "$found" = $DB ]; then
+    echo "DB $DB already exists"
+  else
+    mysqladmin -u root create $DB
+    mysql -u root <<EOS
+grant all on $DB.* to '$DB_USER'@'localhost' identified by "$DB_PW";
+EOS
+	echo "= DB $DB has been created. User: $DB_USER Pw: $DB_PW"
+  fi 
+}
 function InitService(){
+  mkdir -vp $ETC_BASE
   cd $BASE
   useradd sun
   python3 SunMon.py init-service
@@ -15,24 +28,12 @@ function InitService(){
   systemctl stop sunmonitor
   ln -vs $BASE/SunMon.py /usr/local/bin/sunmonitor
 }
-function InitDatabase(){
-  local found=$(echo "show databases;" | mysql -u root mysql | grep $DB"
-  if [ "$found" = $DB ]; then
-    echo "DB $DB already exists"
-  else
-    mysqladmin -u root create $DB
-    mysql -u root <<EOS
-grant all on $DB.* to '$DB_USER'@'localhost' identified by "$DB_PW";
-EOS 
-	echo "= DB $DB has been created. User: $DB_USER Pw: $DB_PW"
-  fi 
-}
 
 function ToDo(){
   grep "net.domain" $ETC_BASE/monitor.conf
   echo "+++ Please adapt the ip in $ETC_BASE/monitor.conf"
   echo "+++ Than restart the monitor: systemctl restart sunmonitor"
-  echo "+++ Test it with: sunmonitor status 
+  echo "+++ Test it with: sunmonitor status"
 }
 if [ $(id -u) != 0 ]; then
   echo "Be root!"

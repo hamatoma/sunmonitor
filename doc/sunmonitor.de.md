@@ -72,11 +72,14 @@ und die Abfrage über den Proxyserver erfolgen.
 
 * Zipdatei [[https://github.com/hamatoma/sunmonitor/archive/refs/heads/main.zip]] von Github herunterladen und in /opt/sunmonitor entpacken
 <pre>
-# Verzeichnis anlegen: 
 BASE=/opt/sunmonitor
 sudo mkdir -p $BASE
+sudo chmod uog+rwx $BASE
 cd $BASE
-# Service anlegen, Datenbank anlegen...
+wget https://github.com/hamatoma/sunmonitor/archive/refs/heads/main.zip
+unzip main.zip
+mv sunmonitor-main/* .
+rm -Rf main.zip sunmonitor-main
 sudo ./installSunMon 
 </pre>
 

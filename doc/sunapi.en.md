@@ -55,11 +55,14 @@ The Linux system must be integrated into the intranet because it has to reach th
 
 * Download the zip file from Github and extract it to /opt/sunmonitor
 <pre>
-# Create directory:
 BASE=/opt/sunmonitor
 sudo mkdir -p $BASE
+sudo chmod uog+rwx $BASE
 cd $BASE
-# Create service, create database...
+wget https://github.com/hamatoma/sunmonitor/archive/refs/heads/main.zip
+unzip main.zip
+mv sunmonitor-main/* .
+rm -Rf main.zip sunmonitor-main
 sudo ./installSunApi
 </pre>
 * Set up port forwarding for SunApi in the router.

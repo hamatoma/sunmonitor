@@ -14,6 +14,7 @@ from MyDb import MyDb
 from I18N import I18N
 from Snippets import Snippets
 from Configuration import Configuration
+from SilentLog import SilentLog
 
 VERSION = '2022.08.01.00'
 
@@ -49,7 +50,8 @@ class Service (MyDb):
         self.config()
         self.i18n = I18N(self.i18nLanguages)
         self.i18n.read(self.i18nFilePrefix)
-        self.dbConnect()
+        if os.path.exists(self._configFile):
+            self.dbConnect()
         self.snippets = Snippets(self.fileSnippets)
         self._titlesSimple = [self.i18n.replaceI18n('i18n(time);1;time;;i18n(count.of.measurements)'),
                               self.i18n.replaceI18n(
@@ -234,25 +236,29 @@ WHERE day_date >= %s AND day_date <= %s
     def config(self):
         '''Reads the configuration file and sets the internal variables.
         '''
-        conf = Configuration(self._configFile)
-        self.interface = conf.asString('net.interface', self.interface)
-        self.port = conf.asInt('net.port', self.port)
-        self._timeout = conf.asInt('net.timeout', self._timeout)
-        self.i18nFilePrefix = conf.asString('i18n.data', self.i18nFilePrefix)
-        self.fileSnippets = conf.asString('snippets.file', self.fileSnippets)
-        self.dbConfig(conf)
+        if not os.path.exists(self._configFile):
+            self.error(f'missing configuration {self._configFile}')
+        else:
+            conf = Configuration(self._configFile)
+            self.interface = conf.asString('net.interface', self.interface)
+            self.port = conf.asInt('net.port', self.port)
+            self._timeout = conf.asInt('net.timeout', self._timeout)
+            self.i18nFilePrefix = conf.asString('i18n.data', self.i18nFilePrefix)
+            self.fileSnippets = conf.asString('snippets.file', self.fileSnippets)
+            self.dbConfig(conf)
 
     def example(self):
         '''Creates an example configuration file. 
         '''
-        content = '''# Configuration for sunserver:
+        content = f'''# Configuration for sunserver:
+{SilentLog.examples()}
 net.interface=localhost
 net.port=8080
 net.timeout=10
 db.name=appsunmonitor
 db.user=sun
 db.code=sun4sun
-base=.
+base=/opt/sunmonitor
 i18n.data=~{base}/sunserver.i18n
 i18n.languages=de en
 snippets.file=~{base}/sunserver.snippets.html

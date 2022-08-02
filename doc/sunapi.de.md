@@ -53,14 +53,17 @@ server.port=8081
 Der Monitor muss auf einem Linuxsystem installiert werden, das SystemD benutzt, z.B. Raspberry-Pi.
 Das Linuxsystem muss im Intranet eingebunden sein, da es den Shelly-Baustein erreichen muss.
 
-* Zipdatei von Github herunterladen und in /opt/sunmonitor entpacken
+* Zipdatei von Github [[https://github.com/hamatoma/sunmonitor/archive/refs/heads/main.zip]]  herunterladen und in /opt/sunmonitor entpacken
 <pre>
-# Verzeichnis anlegen: 
 BASE=/opt/sunmonitor
 sudo mkdir -p $BASE
+sudo chmod uog+rwx $BASE
 cd $BASE
-# Service anlegen, Datenbank anlegen...
-sudo ./installSunApi 
+wget https://github.com/hamatoma/sunmonitor/archive/refs/heads/main.zip
+unzip main.zip
+mv sunmonitor-main/* .
+rm -Rf main.zip sunmonitor-main
+sudo ./installSunApi
 </pre>
 * Im Router eine Port-Weiterleitung für SunApi einrichten.
 

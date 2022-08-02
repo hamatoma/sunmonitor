@@ -52,12 +52,12 @@ Therefore the directory /opt/sunmonitor and the database already exist.
 
 ### Installation on a server in the intranet, e.g. on a Raspberry Pi
 <pre>
-# Create directory:
 BASE=/opt/sunmonitor
 cd $BASE
-# Create service, web server
 DOMAIN=localhost
 sudo ./installSunServer $DOMAIN
+# Specify the GUI language:
+ln -s sunserver.i18n.de sunserver.i18n.current
 </pre>
 
 ### Installation on a server on the Internet:
@@ -65,12 +65,12 @@ In this case, the HTTP server should be addressed with the HTTPS protocol.
 This is done by a reverse proxy provided by Nginx.
 
 <pre>
-# Create directory:
 BASE=/opt/sunmonitor
 cd $BASE
-# Create service, web server
-DOMAIN=sun.example.com
+DOMAIN=localhost
 sudo ./installSunServer $DOMAIN
+# Specify the GUI language:
+ln -s sunserver.i18n.de sunserver.i18n.current
 </pre>
 
 # Test after installation

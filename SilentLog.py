@@ -107,7 +107,7 @@ class SilentLog:
         @return: a text with a configuration example of the module SilentLog
         '''
         return '''log.max.errors=100
-log.max.messages=10000
+log.max.messages=200
 log.print.messages=True
 log.print.errors=True
 log.print.debug=False'''

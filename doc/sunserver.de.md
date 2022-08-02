@@ -52,10 +52,8 @@ Daher existiert schon das Verzeichnis /opt/sunmonitor und die Datenbank.
 
 ### Installation auf einem Server im Intranet, z.B auf einem Raspberry-Pi
 <pre>
-# Verzeichnis anlegen: 
 BASE=/opt/sunmonitor
 cd $BASE
-# Service anlegen, Webserver 
 DOMAIN=localhost
 sudo ./installSunServer $DOMAIN
 # Sprache einstellen:
