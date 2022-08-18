@@ -6,7 +6,7 @@ from SilentLog import SilentLog
 '''
 Created on 26.07.2022
 
-@author: wk
+@author: Hamatoma
 '''
 import http.client
 import sys
@@ -18,7 +18,7 @@ import time
 from MyDb import MyDb
 from Configuration import Configuration
 
-VERSION = '2022.08.01.00'
+VERSION = '2022.10.10.00'
 
 
 class Statistics:
@@ -58,15 +58,12 @@ class Statistics:
             timeAsString, '%Y-%m-%d %H:%M:%S').timestamp()
         return rc
 
-    def populate(self, row):
+    def populate(self, currentTime: int, total: float, aPower: float):
         '''Populates the statistics given by the row.
         @param row: the database row delivering the data to store (one measurement).
         '''
-        currentTime = row[0].timestamp()
         timeDiff = max(1, currentTime - self.lastTime)
         self.lastTime = currentTime
-        aPower = float(row[2])
-        total = float(row[1])
         self.populatePowerRange(aPower, timeDiff)
         self.populateMinMax(total)
 
@@ -74,8 +71,8 @@ class Statistics:
         '''Finishes the data collection for the given day.
         @param rows: the database rows delivering the data to store: All data for one day
         '''
-        self.timeValues[Statistics.limitsHoursMax +
-                        1] = rows[len(rows) - 1][1] - self.valueLastLimit
+        self.timeValues[Statistics.limitsHoursMax + 1] = \
+            max(0, rows[len(rows) - 1][1] - self.valueLastLimit)
         if self.lboundEnergy == None:
             self.energyOfDay = self.lastTotal - self.totalOfLastBreak
         else:
@@ -123,11 +120,11 @@ class Statistics:
             self.valueLastLimit = total
         elif total < self.lastTotal:
             if currentHour >= self.nextHour:
-                self.timeValues[currentHour] = self.lastTotal - \
-                    self.valueLastLimit
+                self.timeValues[currentHour] = \
+                    max(0, self.lastTotal - self.valueLastLimit)
             else:
-                self.timeValues[currentHour +
-                                1] = self.lastTotal - self.valueLastLimit
+                self.timeValues[currentHour + 1] = \
+                    max(0, self.lastTotal - self.valueLastLimit)
             if self.energyOfDay == None:
                 self.energyOfDay = self.lastTotal - self.totalOfLastBreak
             else:
@@ -151,7 +148,8 @@ class Statistics:
                 totalBound = total
             self.lastDebugMessage = f'hour: {currentHour} total: {totalBound}'
             if not done:
-                self.timeValues[currentHour] = totalBound - self.valueLastLimit
+                self.timeValues[currentHour] = \
+                    max(0, totalBound - self.valueLastLimit)
             self.valueLastLimit = totalBound
             self.nextHour += 1
             if self.nextHour > Statistics.limitsHoursMax:
@@ -174,7 +172,7 @@ class Monitor (MyDb):
         self._requestPath = '/rpc/Switch.GetStatus?id=0'
         self._port = 81
         self._timeout = 10
-        self._configFile = '/etc/sunmonitor/monitor.conf'
+        self._configFile = '/etc/sunmonitor/monitor.sun.conf'
         self._wait = 60
         self._from = 5
         self._til = 20
@@ -186,16 +184,19 @@ class Monitor (MyDb):
         '''
         if configFile == None:
             configFile = self._configFile
-        config = Configuration(configFile)
-        self._domain = config.asString('net.domain', self._domain)
-        self._requestPath = config.asString('net.path', self._requestPath)
-        self._port = config.asInt('net.port', self._port)
-        self._timeout = config.asInt('net.timeout', self._timeout)
-        self._wait = config.asInt('service.interval', self._wait)
-        self._from = config.asInt('service.from', self._from)
-        self._til = config.asInt('service.til', self._til)
-        self._dataStart = config.asDate('data.start', self._dataStart)
-        self.dbConfig(config)
+        if not os.path.exists(configFile):
+            raise Exception(f'+++ missing configuration {configFile}')
+        else:
+            config = Configuration(configFile)
+            self._domain = config.asString('net.domain', self._domain)
+            self._requestPath = config.asString('net.path', self._requestPath)
+            self._port = config.asInt('net.port', self._port)
+            self._timeout = config.asInt('net.timeout', self._timeout)
+            self._wait = config.asInt('service.interval', self._wait)
+            self._from = config.asInt('service.from', self._from)
+            self._til = config.asInt('service.til', self._til)
+            self._dataStart = config.asDate('data.start', self._dataStart)
+            self.dbConfig(config)
 
     def createTableIfNotExists(self):
         '''Tests whether the needed tables exist in the database. If not that will be created.
@@ -307,12 +308,18 @@ data.start=2022-06-27
         rc = rows[0][0] > 0
         return rc
 
-    def initDb(self):
+    def initDb(self, argv):
         '''Initializes the database handling.
+        @param argv: program arguments
+        @return: the not processed program arguments
         '''
+        if len(argv) > 0 and argv[0].startswith('--config='):
+            self._configFile = argv[0][9:]
+            argv = argv[1:]
         self.config()
         self.dbConnect()
         self.createTableIfNotExists()
+        return argv
 
     def initService(self):
         '''Builds the file defining an SystemD service.
@@ -327,7 +334,7 @@ User=sun
 Group=sun
 WorkingDirectory=/opt/sunmonitor
 #EnvironmentFile=-/etc/sunmonitor/sunmonitor.env
-ExecStart=/opt/sunmonitor/SunMon.py daemon
+ExecStart=/opt/sunmonitor/SunMon.py daemon 
 #ExecReload=/opt/sunmonitor/SunMon.py reload
 SyslogIdentifier=sunmonitor
 StandardOutput=syslog
@@ -414,10 +421,11 @@ WantedBy=multi-user.target
             if recs[0][0] == 0:
                 countNew += 1
                 currentStr = current.strftime('%Y-%m-%d')
+                currentStr2 = currentStr + ' 23:59:59'
                 sql = f'''SELECT event_time, event_total, event_apower
 FROM events
 WHERE 
-  event_time >= '{currentStr}' AND event_time <= '{currentStr} 23:59:59'
+  event_time >= '{currentStr}' AND event_time <= '{currentStr2}'
 ORDER BY event_time;
 '''
                 rows = self.dbSelect(sql)
@@ -425,9 +433,11 @@ ORDER BY event_time;
                     statistics = Statistics(rows)
                     checkTimeRange = True
                     for row in rows:
-                        statistics.populate(row)
-                        total = float(row[1])
                         currentDate = row[0]
+                        total = float(row[1])
+                        aPower = float(row[2])
+                        statistics.populate(
+                            currentDate.timestamp(), total, aPower)
                         if checkTimeRange and not statistics.populateTimeRange(total, currentDate.timestamp()):
                             checkTimeRange = False
                         statistics.populateLastTotal(total)
@@ -475,16 +485,18 @@ ORDER BY event_time;
 
 def main(argv):
     mode = 'status' if len(argv) < 1 else argv[0]
+    if len(argv) > 0:
+        argv = argv[1:]
     monitor = Monitor()
     if mode == 'status':
-        monitor.initDb()
+        monitor.initDb(argv)
         monitor.status()
     elif mode == 'update-days':
-        monitor.initDb()
+        monitor.initDb(argv)
         monitor.updateDays(monitor._dataStart, datetime.datetime.now().date())
     elif mode == 'daemon':
-        monitor.initDb()
-        monitor.daemon(argv[1:])
+        argv = monitor.initDb(argv)
+        monitor.daemon(argv)
     elif mode == 'init-service':
         monitor.initService()
     elif mode == 'example':

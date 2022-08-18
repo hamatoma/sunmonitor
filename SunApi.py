@@ -11,7 +11,7 @@ import json
 from SilentLog import SilentLog
 from Configuration import Configuration
 
-VERSION = '2022.07.29'
+VERSION = '2022.08.18'
 
 
 class Service(SilentLog):
@@ -19,11 +19,12 @@ class Service(SilentLog):
     '''
     _instance = None
 
-    def __init__(self):
+    def __init__(self, argv):
         '''Constructor.
+        @param argv: the program arguments
         '''
         SilentLog.__init__(self, 100, 100)
-        self._configFile = '/etc/sunmonitor/api.conf'
+        self._configFile = '/etc/sunmonitor/api.sun.conf'
         self._requestPath = '/rpc/Switch.GetStatus?id=0'
         self.verbose = True
         self.clientPort = 80
@@ -31,7 +32,9 @@ class Service(SilentLog):
         self.serverInterface = '0.0.0.0'
         self.serverPort = 8080
         self.clientTimeout = 10
-        self.config()
+        if len(argv) > 0 and argv[0].startswith('--config='):
+            self._configFile = argv[0][9:]
+            argv = argv[1:]
         self.headers = None
 
     @staticmethod
@@ -46,6 +49,8 @@ class Service(SilentLog):
     def config(self):
         '''Reads the configuration file and sets the internal variables.
         '''
+        if not os.path.exists(self._configFile):
+            raise Exception(f'configuration {self._configFile} does not exists')
         config = Configuration(self._configFile)
         self.silentLogConfiguration(config._variables)
         self.clientIp = config.asString('client.ip', self.clientIp)
@@ -175,6 +180,7 @@ def daemon(argv):
     '''Starts a never ending HTTP server process.
     '''
     service = Service.instance()
+    service.config()
     webServer = http.server.HTTPServer(
         (service.serverInterface, service.serverPort), SunApi)
     print(
@@ -182,6 +188,8 @@ def daemon(argv):
     if len(argv) >= 1 and argv[0] == '-v':
         service.verbose = True
         argv = argv[1:]
+    if len(argv) > 0:
+        print(f'ignored argument(s): {" ".join(argv)}')
     if service.verbose:
         print("verbose mode")
     try:
@@ -194,16 +202,18 @@ def daemon(argv):
 
 def main(argv):
     mode = 'daemon' if len(argv) == 0 else argv[0]
+    if len(argv) > 0:
+        argv = argv[1:]
+    Service._instance = Service(argv)
+    service = Service.instance()
     if mode == 'status':
-        service = Service.instance()
+        service.config()
         service.status(True)
     elif mode == 'daemon':
-        daemon(argv[1:])
+        daemon(argv)
     elif mode == 'example':
-        service = Service.instance()
         service.example()
     elif mode == 'init-service':
-        service = Service.instance()
         service.initService()
     else:
         service.error(

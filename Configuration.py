@@ -18,30 +18,31 @@ class Configuration (SilentLog):
 
     def __init__(self, filename: str=None):
         '''Constructor.
-        @param filename: None of the name of the configuration file 
+        @param filename: None of the name of the configuration file
         '''
         SilentLog.__init__(self)
         self._filename = filename
         self.errors = []
         self._variables = {}
-        if filename != None:
+        if filename is not None:
             self.read(filename)
             self.silentLogConfiguration(self._variables)
 
     def asBool(self, key, defaultValue: bool=None) -> bool:
         '''Returns the value of a configuration variable given by its key as a boolean.
         @param key: the key of the variable
-        @param defaultValue: if the variable does not exist or the value is not a boolean this value will be returned
+        @param defaultValue: if the variable does not exist 
+            or the value is not a boolean this value will be returned
         @return the value of the variable with the given key or the defaultValue on error
         '''
         value = self.asString(key) if self.hasKey(key) else None
-        if value == None:
+        if value is None:
             rc = defaultValue
         else:
             value = value.lower()
-            if value == 'true' or value == 't' or value == 'yes' or value == 'y':
+            if value in ('true', 't', 'yes', 'y'):
                 rc = True
-            elif value == 'false' or value == 'f' or value == 'no' or value == 'n':
+            elif value in ('false', 'f', 'no', 'n'):
                 rc = False
             else:
                 self.error(
@@ -52,12 +53,13 @@ class Configuration (SilentLog):
     def asDate(self, key, defaultValue: datetime.date=None) -> datetime.date:
         '''Returns the value of a configuration variable given by its key as a date.
         @param key: the key of the variable
-        @param defaultValue: if the variable does not exist or the value is not a date this value will be returned
+        @param defaultValue: if the variable does not exist 
+            or the value is not a date this value will be returned
         @return the value of the variable with the given key or the defaultValue on error
         '''
         rc = defaultValue
         value = self.asString(key) if self.hasKey(key) else None
-        if value != None:
+        if value is not None:
             separator = '.' if value.find('.') > 0 else '-'
             parts = value.split(separator)
             if len(parts) != 3:
@@ -73,7 +75,7 @@ class Configuration (SilentLog):
                     else:
                         self.error(
                             f'wrong date ((yyyy-mm-dd or dd.mm.yyyy): {value}')
-                    if rc == None:
+                    if rc is None:
                         self.error(
                             f'wrong date ((yyyy-mm-dd or dd.mm.yyyy): {value}')
                         rc = defaultValue
@@ -86,11 +88,12 @@ class Configuration (SilentLog):
     def asInt(self, key, defaultValue: int=-1) -> int:
         '''Returns the value of a configuration variable given by its key as an integer.
         @param key: the key of the variable
-        @param defaultValue: if the variable does not exist or the value is not an integer this value will be returned
+        @param defaultValue: if the variable does not exist 
+            or the value is not an integer this value will be returned
         @return the value of the variable with the given key or the defaultValue on error
         '''
         value = self.asString(key) if self.hasKey(key) else None
-        if value == None:
+        if value is None:
             rc = defaultValue
         else:
             try:
@@ -106,7 +109,7 @@ class Configuration (SilentLog):
             otherwise: the value of the variable
         '''
         rc = self._variables[key] if key in self._variables else (
-            key if defaultValue == None else defaultValue)
+            key if defaultValue is None else defaultValue)
         return rc
 
     def hasKey(self, key):
@@ -131,7 +134,7 @@ class Configuration (SilentLog):
                     if line.startswith('#') or line.strip() == '':
                         continue
                     matcher = Configuration.rexprVariable.match(line)
-                    if matcher == None:
+                    if matcher is None:
                         self.error(
                             f'{filename}-{lineNo}: illegal input: {line}')
                     else:

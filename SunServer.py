@@ -2,7 +2,7 @@
 '''
 Created on 27.06.2022
 
-@author: wk
+@author: Hamatoma
 '''
 import http.server
 import cgi
@@ -16,13 +16,13 @@ from Snippets import Snippets
 from Configuration import Configuration
 from SilentLog import SilentLog
 
-VERSION = '2022.08.01.00'
+VERSION = '2022.08.18.00'
 
 
 class Service (MyDb):
     _instance = None
 
-    def __init__(self):
+    def __init__(self, argv=[]):
         '''Constructor.
         '''
         MyDb.__init__(self)
@@ -34,7 +34,7 @@ class Service (MyDb):
         self._content = ''
         self.headers = None
         self.fieldDate = ''
-        self._configFile = '/etc/sunmonitor/server.conf'
+        self._configFile = '/etc/sunmonitor/server.sun.conf'
         self.fieldMode = 1
         self.fieldFrom = 4
         self.fieldUntil = 22
@@ -42,11 +42,14 @@ class Service (MyDb):
         self.fieldEnd = ''
         self.interface = '0.0.0.0'
         self.port = 8080
-        self._timeout = 10
         self.title = 'Statistik'
         self.i18nFilePrefix = 'sunserver.i18n'
         self.i18nLanguages = 'de en'
         self.fileSnippets = 'sunserver.snippets.html'
+        if len(argv) > 0 and argv[0].startswith('--config='):
+            self._configFile = argv[0][9:]
+            print(f'configuration: {self._configFile}')
+            argv = argv[1:]
         self.config()
         self.i18n = I18N(self.i18nLanguages)
         self.i18n.read(self.i18nFilePrefix)
@@ -193,27 +196,30 @@ WHERE day_date >= %s AND day_date <= %s
             self.fieldEnd, self.i18n.formatDate).strftime('%Y-%m-%d 23:59:59')
         rows = self.dbSelect(sql, (start, end))
         row = rows[0]
-        M = 13
-        R = M + 9
-        count = row[R + 0]
-        values = {'energy': f'{row[0]/1000:.3f}', 'eavg': f'{row[0] / count / 1000:.3f}',
-                  'time8': f'{row[1] / 1000:.2f}', 'time9': f'{row[2] / 1000:.2f}', 'time10': f'{row[3] / 1000:.2f}', 'time11': f'{row[4] / 1000:.2f}', 'time12': f'{row[5] / 1000:.2f}', 'time13': f'{row[6] / 1000:.2f}',
-                  'time14': f'{row[7] / 1000:.2f}', 'time15': f'{row[8] / 1000:.2f}', 'time16': f'{row[9] / 1000:.2f}',
-                  'time17': f'{row[10] / 1000:.2f}', 'time18': f'{row[11] / 1000:.2f}', 'time19': f'{row[12] / 1000:.2f}',
-                  'tavg8': f'{row[1] / count / 1000:.3f}', 'tavg9': f'{row[2] / count / 1000:.3f}', 'tavg10': f'{row[3] / count / 1000:.3f}',
-                  'tavg11': f'{row[4] / count / 1000:.3f}', 'tavg12': f'{row[5] / count / 1000:.3f}', 'tavg13': f'{row[6] / count / 1000:.3f}',
-                  'tavg14': f'{row[7] / count / 1000:.3f}', 'tavg15': f'{row[8] / count / 1000:.3f}', 'tavg16': f'{row[9] / count / 1000:.3f}',
-                  'tavg17': f'{row[10] / count / 1000:.3f}', 'tavg18': f'{row[11] / count / 1000:.3f}', 'tavg19': f'{row[12] / count / 1000:.3f}',
-                  'min10': Service.secToHour(row[M + 0]), 'min25': Service.secToHour(row[M + 1]), 'min50': Service.secToHour(row[M + 2]),
-                  'min100': Service.secToHour(row[M + 3]), 'min200': Service.secToHour(row[M + 4]), 'min300': Service.secToHour(row[M + 5]),
-                  'min400': Service.secToHour(row[M + 6]), 'min500': Service.secToHour(row[M + 7]),  'min590': Service.secToHour(row[M + 8]),
-                  'mavg10': Service.secToHour(row[M + 0] // count), 'mavg25': Service.secToHour(row[M + 1] // count), 'mavg50': Service.secToHour(row[M + 2] // count),
-                  'mavg100': Service.secToHour(row[M + 3] // count), 'mavg200': Service.secToHour(row[M + 4] // count), 'mavg300': Service.secToHour(row[M + 5] // count),
-                  'mavg400': Service.secToHour(row[M + 6] // count), 'mavg500': Service.secToHour(row[M + 7] // count),  'mavg590': Service.secToHour(row[M + 8] // count),
-                  'count': f'{count}'
-                  }
-        i18nData = self.i18n.variables()
-        html = self.snippets.asString('HTML_TABLE_YEAR', i18nData, values)
+        if row[1] is None:
+            html = ''
+        else:
+            M = 13
+            R = M + 9
+            count = row[R + 0]
+            values = {'energy': f'{row[0]/1000:.3f}', 'eavg': f'{row[0] / count / 1000:.3f}',
+                      'time8': f'{row[1] / 1000:.2f}', 'time9': f'{row[2] / 1000:.2f}', 'time10': f'{row[3] / 1000:.2f}', 'time11': f'{row[4] / 1000:.2f}', 'time12': f'{row[5] / 1000:.2f}', 'time13': f'{row[6] / 1000:.2f}',
+                      'time14': f'{row[7] / 1000:.2f}', 'time15': f'{row[8] / 1000:.2f}', 'time16': f'{row[9] / 1000:.2f}',
+                      'time17': f'{row[10] / 1000:.2f}', 'time18': f'{row[11] / 1000:.2f}', 'time19': f'{row[12] / 1000:.2f}',
+                      'tavg8': f'{row[1] / count / 1000:.3f}', 'tavg9': f'{row[2] / count / 1000:.3f}', 'tavg10': f'{row[3] / count / 1000:.3f}',
+                      'tavg11': f'{row[4] / count / 1000:.3f}', 'tavg12': f'{row[5] / count / 1000:.3f}', 'tavg13': f'{row[6] / count / 1000:.3f}',
+                      'tavg14': f'{row[7] / count / 1000:.3f}', 'tavg15': f'{row[8] / count / 1000:.3f}', 'tavg16': f'{row[9] / count / 1000:.3f}',
+                      'tavg17': f'{row[10] / count / 1000:.3f}', 'tavg18': f'{row[11] / count / 1000:.3f}', 'tavg19': f'{row[12] / count / 1000:.3f}',
+                      'min10': Service.secToHour(row[M + 0]), 'min25': Service.secToHour(row[M + 1]), 'min50': Service.secToHour(row[M + 2]),
+                      'min100': Service.secToHour(row[M + 3]), 'min200': Service.secToHour(row[M + 4]), 'min300': Service.secToHour(row[M + 5]),
+                      'min400': Service.secToHour(row[M + 6]), 'min500': Service.secToHour(row[M + 7]),  'min590': Service.secToHour(row[M + 8]),
+                      'mavg10': Service.secToHour(row[M + 0] // count), 'mavg25': Service.secToHour(row[M + 1] // count), 'mavg50': Service.secToHour(row[M + 2] // count),
+                      'mavg100': Service.secToHour(row[M + 3] // count), 'mavg200': Service.secToHour(row[M + 4] // count), 'mavg300': Service.secToHour(row[M + 5] // count),
+                      'mavg400': Service.secToHour(row[M + 6] // count), 'mavg500': Service.secToHour(row[M + 7] // count),  'mavg590': Service.secToHour(row[M + 8] // count),
+                      'count': f'{count}'
+                      }
+            i18nData = self.i18n.variables()
+            html = self.snippets.asString('HTML_TABLE_YEAR', i18nData, values)
         return html
 
     def yearToSvg(self, start: str, end: str):
@@ -222,7 +228,6 @@ WHERE day_date >= %s AND day_date <= %s
         @param end: the end of the interval to display
         @returns: the SVG text
         '''
-        service = Service.instance()
         wordsStart = start.split(' ')
         partsStart = wordsStart[0].split(self.i18n.separatorDate)
         wordsEnd = end.split(' ')
@@ -242,9 +247,10 @@ WHERE day_date >= %s AND day_date <= %s
             conf = Configuration(self._configFile)
             self.interface = conf.asString('net.interface', self.interface)
             self.port = conf.asInt('net.port', self.port)
-            self._timeout = conf.asInt('net.timeout', self._timeout)
-            self.i18nFilePrefix = conf.asString('i18n.data', self.i18nFilePrefix)
-            self.fileSnippets = conf.asString('snippets.file', self.fileSnippets)
+            self.i18nFilePrefix = conf.asString(
+                'i18n.data', self.i18nFilePrefix)
+            self.fileSnippets = conf.asString(
+                'snippets.file', self.fileSnippets)
             self.dbConfig(conf)
 
     def example(self):
@@ -254,14 +260,14 @@ WHERE day_date >= %s AND day_date <= %s
 {SilentLog.examples()}
 net.interface=localhost
 net.port=8080
-net.timeout=10
 db.name=appsunmonitor
 db.user=sun
 db.code=sun4sun
-base=/opt/sunmonitor
+'''
+        content += '''base=/opt/sunmonitor
 i18n.data=~{base}/sunserver.i18n
 i18n.languages=de en
-snippets.file=~{base}/sunserver.snippets.html
+snippets.file=~{\base\}/sunserver.snippets.html
 '''
         if os.path.exists(self._configFile):
             print(f'# {self._configFile} already exists\n')
@@ -454,11 +460,12 @@ class SunServer(http.server.BaseHTTPRequestHandler):
 def daemon(argv):
     '''Starts a never ending HTTP server process.
     '''
+    Service._instance = Service(argv)
     service = Service.instance()
-    webServer = http.server.HTTPServer(
-        (service.interface, service.port), SunServer)
     print(
         f'sunserver started: {service.interface}:{service.port} Version: {VERSION}')
+    webServer = http.server.HTTPServer(
+        (service.interface, service.port), SunServer)
     service.verbose = len(argv) >= 1 and argv[0] == '-v'
     if service.verbose:
         print("verbose mode")
