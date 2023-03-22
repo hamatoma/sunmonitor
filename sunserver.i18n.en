@@ -29,6 +29,7 @@ svg.notice=Notice
 svg.conclusion=Conclusion
 temperature=Temperature
 time=Time
+timeOfDay=Time
 today=Today
 until=Until
 voltage=Voltage

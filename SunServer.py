@@ -8,7 +8,7 @@ import http.server
 import cgi
 import datetime
 import sys
-import SvgTool
+import SvgDiagram
 import os
 from MyDb import MyDb
 from I18N import I18N
@@ -16,7 +16,7 @@ from Snippets import Snippets
 from Configuration import Configuration
 from SilentLog import SilentLog
 
-VERSION = '2022.08.18.00'
+VERSION = '2023.03.28.00'
 
 
 class Service (MyDb):
@@ -34,22 +34,26 @@ class Service (MyDb):
         self._content = ''
         self.headers = None
         self.fieldDate = ''
-        self._configFile = '/etc/sunmonitor/server.sun.conf'
+        self._configFile = '/etc/sunmonitor/sunmonitor.conf'
         self.fieldMode = 1
         self.fieldFrom = 4
         self.fieldUntil = 22
         self.fieldStart = ''
         self.fieldEnd = ''
+        self.bestStartDate = '2023-01-01'
         self.interface = '0.0.0.0'
         self.port = 8080
-        self.title = 'Statistik'
+        self.timeZone = 0
+        self.title = 'Sonnenstatistik'
+        self.dayTitle = 'Sonnenstatistik (Tag)'
+        self.yearTitle = 'Sonnenstatistik (Jahr)'
         self.i18nFilePrefix = 'sunserver.i18n'
         self.i18nLanguages = 'de en'
         self.fileSnippets = 'sunserver.snippets.html'
         if len(argv) > 0 and argv[0].startswith('--config='):
             self._configFile = argv[0][9:]
-            print(f'configuration: {self._configFile}')
             argv = argv[1:]
+        print(f'configuration: {self._configFile}')
         self.config()
         self.i18n = I18N(self.i18nLanguages)
         self.i18n.read(self.i18nFilePrefix)
@@ -60,13 +64,13 @@ class Service (MyDb):
                               self.i18n.replaceI18n(
                                   'i18n(power) (W);3;;ignore-0;i18n(last.value)'),
                               self.i18n.replaceI18n(
-                                  'i18n(energy) (Wh);2;;ignore-0,last-is-diff;i18n(day.summary)'),
+                                  'i18n(energy) (Wh);2;;ignore-0+relative-to-start,last-is-diff;i18n(day.summary)'),
                               self.i18n.replaceI18n('i18n(currency) (A);2;;ignore-0,0-exclude-from-average;i18n(last.value)')]
         self._titlesTotal = [self.i18n.replaceI18n('i18n(time);1;time;;i18n(count.of.measurements)'),
                              self.i18n.replaceI18n(
                                  'i18n(power) (W);3;;ignore-0;i18n(last.value)'),
                              self.i18n.replaceI18n(
-                                 'i18n(energy) (Wh);2;;ignore-0,last-is-diff;i18n(day.summary)'),
+                                 'i18n(energy) (Wh);2;;ignore-0+relative-to-start,last-is-diff;i18n(day.summary)'),
                              self.i18n.replaceI18n(
                                  'i18n(currency) (A);2;;ignore-0,0-exclude-from-average;i18n(last.value)'),
                              self.i18n.replaceI18n(
@@ -86,16 +90,18 @@ class Service (MyDb):
         '''Builds the HTML table with the "best of" data.
         @return: the HTML text of the table
         '''
-        sql = '''SELECT 
+        sql = f'''SELECT 
   day_date, day_energy
 FROM days
+WHERE day_date >= '{self.bestStartDate}'
 order by day_energy desc
 limit 20;
 '''
         rowsGood = self.dbSelect(sql)
-        sql = '''SELECT 
+        sql = f'''SELECT 
   day_date, day_energy
 FROM days
+WHERE day_date >= '{self.bestStartDate}'
 order by day_energy
 limit 20;
 '''
@@ -140,7 +146,7 @@ FROM events
 WHERE event_time>=%s AND event_time <=%s AND event_total > 0.0
 ORDER BY event_time, event_id;
 '''
-            svg = SvgTool.SvgTool(self.i18n)
+            svg = SvgDiagram.Diagram(self.i18n)
             svg.outputFileType = 'no-body'
             if service.fieldMode == 1:
                 # title strokeWidth displayType attributes comment
@@ -156,12 +162,12 @@ ORDER BY event_time, event_id;
                 for row in rows:
                     if firstTime == None:
                         firstTime = row[0]
-                    lastTime = row[0]
+                    lastTime = row[0] % 86400 / 3600.0 + self.timeZone
                     if service.fieldMode == 1:
-                        svg.addRow([row[0], row[1], row[2], row[3]])
+                        svg.addRow((lastTime, row[1], row[2], row[3]))
                     else:
-                        svg.addRow([row[0], row[1], row[2],
-                                    row[3], row[4], row[5]])
+                        svg.addRow((lastTime, row[1], row[2],
+                                    row[3], row[4], row[5]))
                 svg.returnToZero()
                 start = datetime.datetime.fromtimestamp(
                     firstTime).strftime('%H:%M:%S')
@@ -246,11 +252,16 @@ WHERE day_date >= %s AND day_date <= %s
         else:
             conf = Configuration(self._configFile)
             self.interface = conf.asString('net.interface', self.interface)
+            self.dayTitle = conf.asString('website.day.title')
+            self.yearTitle = conf.asString('website.year.title')
+            self.title = conf.asString('website.title')
             self.port = conf.asInt('net.port', self.port)
             self.i18nFilePrefix = conf.asString(
                 'i18n.data', self.i18nFilePrefix)
             self.fileSnippets = conf.asString(
                 'snippets.file', self.fileSnippets)
+            self.bestStartDate = conf.asString('best.start.date')
+            self.timeZone = conf.asInt('timezone.offset', 0)
             self.dbConfig(conf)
 
     def example(self):
@@ -263,6 +274,10 @@ net.port=8080
 db.name=appsunmonitor
 db.user=sun
 db.code=sun4sun
+website.title=My Sun Statistic
+website.day.title=Sun Daily Statistic
+website.year.title=Sun Year Statistic
+best.start.date=2023-01-01
 '''
         content += '''base=/opt/sunmonitor
 i18n.data=~{base}/sunserver.i18n
@@ -314,10 +329,11 @@ snippets.file=~{\base\}/sunserver.snippets.html
             'HTML_DAY_FORM_BODY', i18nData, values)
 
         body = self.snippets.asString('HTML_FORM', i18nData, {
-                                      'action': '/day', 'method': 'POST', 'id': 'day', 'title': self.i18n.translate('form.day.title'),
+                                      'action': '/day', 'method': 'POST', 'id': 'day', 'title': self.dayTitle,
                                       'FORM_BODY': formBody})
         self._content = self.snippets.asString(
             'HTML_DOCUMENT', i18nData, {'BODY': body})
+        self._content = self._content.replace('~page.title~', self.title)
 
     def htmlYearPage(self):
         '''Builds the HTML page of the current year.
@@ -338,11 +354,11 @@ snippets.file=~{\base\}/sunserver.snippets.html
             'HTML_YEAR_FORM_BODY', i18nData, values)
 
         body = self.snippets.asString('HTML_FORM', i18nData, {
-                                      'action': '/year', 'method': 'POST', 'id': 'year', 'title': self.i18n.translate('form.year.title'),
+                                      'action': '/year', 'method': 'POST', 'id': 'year', 'title': self.yearTitle,
                                       'FORM_BODY': formBody})
         self._content = self.snippets.asString(
             'HTML_DOCUMENT', i18nData, {'BODY': body})
-
+        self._content = self._content.replace('~page.title~', self.title)
     def initService(self):
         '''Builds the file defining an SystemD service.
         '''

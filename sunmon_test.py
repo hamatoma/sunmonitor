@@ -7,7 +7,7 @@ import unittest
 import datetime
 import time
 import os.path
-from SunMon import Monitor, Statistics
+from SunMon import Monitor, Statistics, sunriseDistance
 
 
 class SimpleRandom:
@@ -214,10 +214,10 @@ service.interval=60
         for row in rows:
             total = row[1]
             timestamp = row[0].timestamp()
-            stat.populate(row)
+            stat.populate(timestamp, total, row[2])
             stat.populateTimeRange(total, timestamp)
             stat.populateLastTotal(total)
-        stat.populateFinish(rows)
+        stat.populateFinish(rows, 12377.0)
         monitor = Monitor()
         monitor.config(SunMonTest.configFile)
         monitor.dbConnect()
@@ -235,7 +235,7 @@ WHERE day_date='{d1}';
         self.assertEqual(datetime.date(2022, 2, 3), row[1])
         self.assertEqual(260.1, row[2])
         self.assertEqual(5244.2, row[3])
-        self.assertEqual(2336.2, row[4])
+        self.assertEqual(12377.0, row[4])
         self.assertEqual(7.73799, float(row[5]))
         self.assertEqual(47.5712, row[6])
         self.assertEqual(98.1073, row[7])
@@ -304,6 +304,8 @@ WHERE day_date='{d1}';
         self.assertEqual(1800, row[24])
         monitor.dbClose()
 
+    def testSunRiseDistance(self):
+        self.assertEqual(0.0, sunriseDistance(47.811, datetime.date(2023, 1, 1)))
 
 if __name__ == "__main__":
     unittest.main()

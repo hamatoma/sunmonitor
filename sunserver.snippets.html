@@ -3,7 +3,7 @@ HTML_DOCUMENT:
 <html lang="en" data-url="greenlab.infeos"><head>
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta charset="UTF-8">
-  <title>i18n(page.title)</title>
+  <title>~page.title~</title>
 </head>
 <body>
 <style>
@@ -50,6 +50,7 @@ HTML_ROW:
 HTML_DAY_FORM_BODY:
   <label for="date">i18n(date): </label> 
   <input class="sun-date-input" name="date" value="~date~" />
+  i18n(timeOfDay):
   <label for="from">i18n(from): </label> 
   <select name="from">
   <option value="4"~from4~>4</option>
@@ -71,11 +72,11 @@ HTML_DAY_FORM_BODY:
   <option value="20"~until20~>20</option>
   <option value="22"~until22~>22</option>
   </select>
-  <button type="submit" name="daydiagram">i18n(show)</button>
   <select name="mode">
   <option value="1"~mode1~>i18n(simple)</option>
   <option value="2"~mode2~>i18n(all)</option>
   </select>
+  <button type="submit" name="daydiagram">i18n(show)</button>
   <a href="/year">i18n(statistics.of.year)</a>
 <p>i18n(today): <a href="/day?date=~now~">~now~</a>
   i18n(yesterday): <a href="/day?date=~yesterday~">~yesterday~</a>

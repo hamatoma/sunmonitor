@@ -15,11 +15,27 @@ import json
 import datetime
 import re
 import time
+import math
 from MyDb import MyDb
 from Configuration import Configuration
 
-VERSION = '2022.10.10.00'
+VERSION = '2023.03.28.00'
 
+
+def sunriseDistance(latitude: float, date=None):
+    '''Calculates an approximation of the hours from sunrise to the local noon.
+    @param: latitude: the east-west coordinate
+    @param: longitude: the north-south coordinate
+    @param: timezone: the difference between local noon and current time in hours
+    @return: the hours between sunrise and noon (or noon and sunset)
+    '''
+    if date is None:
+        date = datetime.datetime.now().date()
+    def rad(x): return x*3.141592/180.0
+    dayNo = int(datetime.datetime.now().date().strftime('%j'))
+    # | (1/15)*arccos[-tan(L)*tan(23.44*sin(360(D+284)/365))] |.
+    rc =  abs((1/15)*math.acos(-math.tan(rad(latitude))*math.tan(rad(23.44*math.sin(rad(360*(dayNo+284)/365))))))
+    return rc
 
 class Statistics:
     '''Manages the statistics for each day.
@@ -67,13 +83,17 @@ class Statistics:
         self.populatePowerRange(aPower, timeDiff)
         self.populateMinMax(total)
 
-    def populateFinish(self, rows):
+    def populateFinish(self, rows, dayEnergy: float):
         '''Finishes the data collection for the given day.
         @param rows: the database rows delivering the data to store: All data for one day
+        @param dayEnergy: the energy of the day.
         '''
         self.timeValues[Statistics.limitsHoursMax + 1] = \
             max(0, rows[len(rows) - 1][1] - self.valueLastLimit)
-        if self.lboundEnergy == None:
+        useExtern = 'x'.startswith('x')
+        if useExtern:
+            self.energyOfDay = dayEnergy
+        elif self.lboundEnergy == None:
             self.energyOfDay = self.lastTotal - self.totalOfLastBreak
         else:
             if self.energyOfDay == None:
@@ -259,7 +279,7 @@ class Monitor (MyDb):
         '''
         print(f'sunmonitor started as daemon (version {VERSION})')
         print(f'from: {self._from} until: {self._til}')
-        self.verbose = len(argv) >= 1 and argv[0] == '-v'
+        self.verbose = len(argv) >= 1 and argv[0] != '-q'
         self.printMessages = self.verbose
         if self.verbose:
             print("verbose mode")
@@ -316,6 +336,11 @@ data.start=2022-06-27
         if len(argv) > 0 and argv[0].startswith('--config='):
             self._configFile = argv[0][9:]
             argv = argv[1:]
+        if len(argv) > 0 and argv[0] == '-q':
+            self.verbose = False
+            argv = argv[1:]
+        if self.verbose:
+            print(f'= configuration: {self._configFile}')
         self.config()
         self.dbConnect()
         self.createTableIfNotExists()
@@ -417,8 +442,11 @@ WantedBy=multi-user.target
         while current < lastDate:
             countTotal += 1
             sql = '''SELECT count(*) FROM days WHERE day_date=%s;'''
-            recs = self.dbSelect(sql, [current.strftime('%Y-%m-%d')])
+            currentDay = current.strftime('%Y-%m-%d')
+            recs = self.dbSelect(sql, [currentDay])
             if recs[0][0] == 0:
+                #if self.verbose:
+                #    print(f'{currentDay}: {len(recs)} record(s)')
                 countNew += 1
                 currentStr = current.strftime('%Y-%m-%d')
                 currentStr2 = currentStr + ' 23:59:59'
@@ -432,16 +460,23 @@ ORDER BY event_time;
                 if len(rows) >= 1:
                     statistics = Statistics(rows)
                     checkTimeRange = True
+                    dayEnergy = 0
+                    minTotal = lastTotal = float(rows[0][1])
                     for row in rows:
                         currentDate = row[0]
                         total = float(row[1])
+                        if total < lastTotal:
+                            dayEnergy += lastTotal - minTotal
+                            minTotal = 0.0
+                        lastTotal = total
                         aPower = float(row[2])
                         statistics.populate(
                             currentDate.timestamp(), total, aPower)
                         if checkTimeRange and not statistics.populateTimeRange(total, currentDate.timestamp()):
                             checkTimeRange = False
                         statistics.populateLastTotal(total)
-                    statistics.populateFinish(rows)
+                    dayEnergy += total - minTotal
+                    statistics.populateFinish(rows, dayEnergy)
                     self.updateOneDay(currentDate, statistics)
             current += datetime.timedelta(days=1)
         self.debug(f'total: {countTotal} new: {countNew}')
@@ -481,7 +516,8 @@ ORDER BY event_time;
                   stat.powerValues[4], stat.powerValues[5], stat.powerValues[6], stat.powerValues[7], stat.powerValues[8],
                   changed, 'statistics')
         self.dbExecute(sql, values)
-
+        if self.verbose:
+            print(f'updated: {time2}')
 
 def main(argv):
     mode = 'status' if len(argv) < 1 else argv[0]
@@ -493,7 +529,9 @@ def main(argv):
         monitor.status()
     elif mode == 'update-days':
         monitor.initDb(argv)
-        monitor.updateDays(monitor._dataStart, datetime.datetime.now().date())
+        #until = datetime.date(2023, 3, 20)
+        until = datetime.datetime.now().date()
+        monitor.updateDays(monitor._dataStart, until)
     elif mode == 'daemon':
         argv = monitor.initDb(argv)
         monitor.daemon(argv)
